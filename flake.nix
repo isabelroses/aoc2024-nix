@@ -15,6 +15,8 @@
     {
       formatter = perSystem (system: pkgsFor.${system}.nixfmt-rfc-style);
 
+      inherit lib;
+
       devShells.default = perSystem (
         system:
         pkgsFor.${system}.mkShellNoCC {
