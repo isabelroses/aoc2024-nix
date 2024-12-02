@@ -1,5 +1,18 @@
 let
-  lib = import ../../getlib.nix;
+  # from nixpkgs lib
+  lib = {
+    count = pred: foldl' (c: x: if pred x then c + 1 else c) 0;
+
+    range = first: last: if first > last then [ ] else genList (n: first + n) (last - first + 1);
+
+    min = x: y: if x < y then x else y;
+
+    zipListsWith =
+      f: fst: snd:
+      genList (n: f (elemAt fst n) (elemAt snd n)) (lib.min (length fst) (length snd));
+
+    zipLists = lib.zipListsWith (fst: snd: { inherit fst snd; });
+  };
 
   inherit (builtins)
     map
@@ -14,6 +27,8 @@ let
     lessThan
     add
     foldl'
+    genList
+    elemAt
     ;
 
   raw = builtins.readFile ./input;
@@ -23,7 +38,7 @@ let
     let
       allNums = map fromJSON (filter (x: (isString x) && x != "") (split " |\n" input));
 
-      ziped = lib.lists.zipLists (lib.range 0 (length allNums)) allNums;
+      ziped = lib.zipLists (lib.range 0 (length allNums)) allNums;
 
       leftList = map (x: if ((bitAnd x.fst 1) == 0) then x.snd else null) ziped;
       rightList = map (x: if ((bitAnd x.fst 1) == 1) then x.snd else null) ziped;
@@ -41,7 +56,7 @@ let
     let
       sortedLeft = srtlt leftList;
       sortedRight = srtlt rightList;
-      distances = lib.lists.zipListsWith (l: r: abs (l - r)) sortedLeft sortedRight;
+      distances = lib.zipListsWith (l: r: abs (l - r)) sortedLeft sortedRight;
     in
     foldl' add 0 distances;
 
@@ -49,7 +64,7 @@ let
   calculateSimilairty =
     leftList: rightList:
     let
-      similarities = map (l: l * (lib.lists.count (x: x == l) rightList)) leftList;
+      similarities = map (l: l * (lib.count (x: x == l) rightList)) leftList;
     in
     foldl' add 0 similarities;
 
