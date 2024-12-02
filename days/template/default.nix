@@ -1,3 +1,3 @@
 let
-  lib = import ../../getlib.nix;
+  inherit (builtins) x;
 in
