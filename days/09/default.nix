@@ -16,6 +16,12 @@ let
 
   imap0 = f: list: genList (n: f n (elemAt list n)) (length list);
   range = first: last: if first > last then [ ] else genList (n: first + n) (last - first);
+  reverseList =
+    xs:
+    let
+      l = length xs;
+    in
+    genList (n: elemAt xs (l - n - 1)) l;
 
   # raw = "2333133121414131402";
   raw = builtins.readFile ./input;
@@ -49,62 +55,43 @@ let
 
   makeReadable = nodes: foldl' (acc: node: acc + (toString node.id or ".")) "" nodes;
 
-  swap =
-    nodes: l: r:
-    map (
-      i:
-      if i == l then
-        elemAt nodes r
-      else if i == r then
-        elemAt nodes l
-      else
-        elemAt nodes i
-    ) (range 0 (length nodes));
+  removeLast =
+    count: list:
+    let
+      len = length list;
+      ajust = len - count;
+    in
+    genList (n: elemAt list n) ajust;
 
   swapRecurrsive =
-    nodes':
+    nodes:
     let
-      loop =
-        {
-          nodes,
-          l,
-          r,
-        }:
-        if l < r then
-          let
-            leftNode = elemAt nodes l;
-            rightNode = elemAt nodes r;
+      reversedFiles = reverseList (filter (node: node.type == "File") nodes);
 
-            nextL = l + 1;
-            nextR = r - 1;
-
-            acc =
-              if leftNode.type == "Space" && rightNode.type == "File" then
-                {
-                  nodes = swap nodes l r;
-                  l = nextL;
-                  r = nextR;
-                }
-              else if leftNode.type == "Space" && rightNode.type == "Space" then
-                {
-                  inherit nodes l;
-                  r = nextR;
-                }
-              else
-                {
-                  inherit nodes r;
-                  l = nextL;
-                };
-          in
-          loop acc
-        else
+      swap =
+        foldl'
+          (
+            acc: node:
+            if node.type == "Space" && length reversedFiles > acc.revFileIdx then
+              {
+                revFileIdx = acc.revFileIdx + 1;
+                out = acc.out ++ [ (elemAt reversedFiles acc.revFileIdx) ];
+              }
+            else
+              {
+                inherit (acc) revFileIdx;
+                out = acc.out ++ [ node ];
+              }
+          )
+          {
+            out = [ ];
+            revFileIdx = 0;
+          }
           nodes;
+
+      ajust = removeLast swap.revFileIdx swap.out ++ genList (_: { type = "Space"; }) swap.revFileIdx;
     in
-    loop {
-      nodes = nodes';
-      l = 0;
-      r = length nodes' - 1;
-    };
+    ajust;
 
   partOne =
     input:
