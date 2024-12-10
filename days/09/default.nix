@@ -22,9 +22,22 @@ let
       l = length xs;
     in
     genList (n: elemAt xs (l - n - 1)) l;
+  sublist =
+    start: count: list:
+    let
+      len = length list;
+    in
+    genList (n: elemAt list (n + start)) (
+      if start >= len then
+        0
+      else if start + count > len then
+        len - start
+      else
+        count
+    );
 
-  # raw = "2333133121414131402";
-  raw = builtins.readFile ./input;
+  raw = "2333133121414131402";
+  # raw = builtins.readFile ./input;
 
   parseInput =
     input:
@@ -72,7 +85,7 @@ let
         foldl'
           (
             acc: node:
-            if node.type == "Space" && length reversedFiles > acc.revFileIdx then
+            if node.type == "Space" && length reversedFiles >= acc.revFileIdx then
               {
                 revFileIdx = acc.revFileIdx + 1;
                 out = acc.out ++ [ (elemAt reversedFiles acc.revFileIdx) ];
@@ -93,12 +106,30 @@ let
     in
     ajust;
 
+  thisIsCooked =
+    nodes':
+    let
+      maxBlocks = 10000;
+
+      splitAndProcess =
+        nodes:
+        if length nodes <= maxBlocks then
+          checksum (swapRecurrsive nodes)
+        else
+          let
+            first = sublist 0 maxBlocks nodes;
+            rest = sublist maxBlocks (length nodes - maxBlocks) nodes;
+          in
+          checksum (swapRecurrsive first) + thisIsCooked rest;
+    in
+    splitAndProcess nodes';
+
   partOne =
     input:
     let
       nodes = parseInput input;
-      swappedNodes = swapRecurrsive nodes;
+      checksums = thisIsCooked nodes;
     in
-    checksum swappedNodes;
+    checksums;
 in
 partOne raw
