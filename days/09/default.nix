@@ -36,8 +36,8 @@ let
         count
     );
 
-  raw = "2333133121414131402";
-  # raw = builtins.readFile ./input;
+  # raw = "2333133121414131402";
+  raw = builtins.readFile ./input;
 
   parseInput =
     input:
@@ -85,7 +85,7 @@ let
         foldl'
           (
             acc: node:
-            if node.type == "Space" && length reversedFiles >= acc.revFileIdx then
+            if node.type == "Space" && length reversedFiles > acc.revFileIdx then
               {
                 revFileIdx = acc.revFileIdx + 1;
                 out = acc.out ++ [ (elemAt reversedFiles acc.revFileIdx) ];
@@ -111,25 +111,35 @@ let
     let
       maxBlocks = 10000;
 
-      splitAndProcess =
-        nodes:
-        if length nodes <= maxBlocks then
-          checksum (swapRecurrsive nodes)
-        else
-          let
-            first = sublist 0 maxBlocks nodes;
-            rest = sublist maxBlocks (length nodes - maxBlocks) nodes;
-          in
-          checksum (swapRecurrsive first) + thisIsCooked rest;
+      splitIntoBlocks =
+        list:
+        let
+          len = length list;
+
+          makeBlocks =
+            start:
+            if start >= len then [ ] else [ (sublist start maxBlocks list) ] ++ makeBlocks (start + maxBlocks);
+        in
+        makeBlocks 0;
+
+      blocks = splitIntoBlocks nodes';
+      sortedBlocks = map swapRecurrsive blocks;
+      sorted = concatLists sortedBlocks;
+      sorted' = thisIsCooked sorted;
     in
-    splitAndProcess nodes';
+    if length nodes' <= maxBlocks then
+      swapRecurrsive nodes'
+    else if sorted' == sorted then
+      sorted
+    else
+      sorted';
 
   partOne =
     input:
     let
       nodes = parseInput input;
-      checksums = thisIsCooked nodes;
+      swaped = thisIsCooked nodes;
     in
-    checksums;
+    checksum swaped;
 in
 partOne raw
